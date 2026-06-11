@@ -1,6 +1,7 @@
-import type { Component } from "@mariozechner/pi-tui";
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@mariozechner/pi-tui";
-import type { Theme } from "@mariozechner/pi-coding-agent";
+import type { Component } from "@earendil-works/pi-tui";
+import { Markdown, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Theme } from "@earendil-works/pi-coding-agent";
+import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
 import type { SessionInfo, Message } from "../types.js";
 
 export class InlineMessageComponent implements Component {
@@ -34,7 +35,17 @@ export class InlineMessageComponent implements Component {
     const headerPadding = Math.max(0, bodyWidth - visibleWidth(headerText));
     lines.push(this.theme.fg("accent", `╭${headerText}${borderChar.repeat(headerPadding)}╮`));
 
-    const contentLines = wrapTextWithAnsi(this.bodyText || this.message.content.text, bodyWidth);
+    // Render body content with Markdown component for proper formatting
+    const bodyText = this.bodyText || this.message.content.text;
+    let contentLines: string[];
+    try {
+      const mdTheme = getMarkdownTheme();
+      const md = new Markdown(bodyText, 0, 0, mdTheme);
+      contentLines = md.render(bodyWidth);
+    } catch {
+      // Fallback to plain text wrapping if markdown rendering fails
+      contentLines = wrapTextWithAnsi(bodyText, bodyWidth);
+    }
     for (const line of contentLines) {
       const text = truncateToWidth(line, bodyWidth, "");
       const padding = Math.max(0, bodyWidth - visibleWidth(text));
